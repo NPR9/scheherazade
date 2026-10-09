@@ -4,6 +4,5 @@
     "api/**/*.ts": {
       "maxDuration": 60
     }
-  },
-  "comment_crons": "Vercel Hobby cron = daily max. We do NOT use Vercel crons. External scheduler (cron-job.org) hits /api/cron/* endpoints on IST schedule. See docs/CRON_SCHEDULE.md"
+  }
 }
