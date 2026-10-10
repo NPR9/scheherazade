@@ -1,18 +1,23 @@
 // Pure-free LLM router. Gemini primary, Groq fallback.
-// No Claude API path. Add later only if NPR moves to hybrid.
 
 type Message = { role: 'system' | 'user' | 'assistant'; content: string };
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'llama-3.1-8b-instant';
 
 export async function chat(messages: Message[]): Promise<string> {
+  const errors: string[] = [];
   try {
     return await callGemini(messages);
-  } catch (e) {
-    console.warn('Gemini failed, falling back to Groq:', e);
-    return await callGroq(messages);
+  } catch (e: any) {
+    errors.push(`Gemini: ${e.message || e}`);
   }
+  try {
+    return await callGroq(messages);
+  } catch (e: any) {
+    errors.push(`Groq: ${e.message || e}`);
+  }
+  throw new Error(`Both LLM providers failed. ${errors.join(' | ')}`);
 }
 
 async function callGemini(messages: Message[]): Promise<string> {
@@ -39,7 +44,7 @@ async function callGemini(messages: Message[]): Promise<string> {
     }
   );
 
-  if (!res.ok) throw new Error(`Gemini ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
 
   const data = await res.json();
   return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
@@ -58,7 +63,7 @@ async function callGroq(messages: Message[]): Promise<string> {
     body: JSON.stringify({ model: GROQ_MODEL, messages }),
   });
 
-  if (!res.ok) throw new Error(`Groq ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
 
   const data = await res.json();
   return data.choices?.[0]?.message?.content ?? '';
